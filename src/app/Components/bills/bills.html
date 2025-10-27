@@ -35,6 +35,105 @@
     </div>
   }
 
+  <!-- Search and Filter Bar -->
+  <div class="row mb-3">
+    <div class="col-12">
+      <div class="card">
+        <div class="card-body">
+          <!-- Search Row -->
+          <div class="row align-items-center mb-3">
+            <div class="col-md-8">
+              <div class="input-group">
+                <span class="input-group-text">
+                  <i class="bi bi-search"></i>
+                </span>
+                <input 
+                  type="text" 
+                  class="form-control" 
+                  placeholder="Search bills by details..."
+                  [(ngModel)]="searchText"
+                  (input)="onSearchInput()"
+                  name="searchInput">
+                @if (searchText) {
+                  <button 
+                    class="btn btn-outline-secondary" 
+                    type="button" 
+                    (click)="clearSearch()">
+                    <i class="bi bi-x-circle"></i>
+                  </button>
+                }
+              </div>
+            </div>
+            <div class="col-md-4 text-end">
+              @if (isSearching) {
+                <div class="d-flex align-items-center justify-content-end">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                    <span class="visually-hidden">Searching...</span>
+                  </div>
+                  <span class="badge bg-info">
+                    <i class="bi bi-hourglass-split me-1"></i>
+                    Searching...
+                  </span>
+                </div>
+              } @else if (searchText) {
+                <span class="badge bg-success">
+                  {{ filteredBills.length }} result(s) found
+                </span>
+              }
+            </div>
+          </div>
+
+          <!-- Date Filter Row -->
+          <div class="row align-items-center">
+            <div class="col-md-3">
+              <label for="startDate" class="form-label small">From Date</label>
+              <input 
+                type="date" 
+                class="form-control form-control-sm" 
+                id="startDate"
+                [(ngModel)]="startDate"
+                (change)="onDateChange()"
+                name="startDate">
+            </div>
+            <div class="col-md-3">
+              <label for="endDate" class="form-label small">To Date</label>
+              <input 
+                type="date" 
+                class="form-control form-control-sm" 
+                id="endDate"
+                [(ngModel)]="endDate"
+                (change)="onDateChange()"
+                name="endDate">
+            </div>
+            <div class="col-md-3">
+              @if (startDate || endDate) {
+                <button 
+                  class="btn btn-outline-danger btn-sm mt-4" 
+                  type="button" 
+                  (click)="clearDateFilter()">
+                  <i class="bi bi-calendar-x me-1"></i>
+                  Clear Date Filter
+                </button>
+              }
+            </div>
+            <div class="col-md-3 text-end">
+              <div class="mt-4">
+                <span class="badge bg-primary">
+                  <i class="bi bi-list-check me-1"></i>
+                  {{ getTotalCount() }} bills
+                </span>
+                <span class="badge bg-success ms-2">
+                  <i class="bi bi-currency-dollar me-1"></i>
+                  Total: {{ formatCurrency(getTotalAmount()) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <!-- Loading Spinner -->
   @if (isLoading && bills.length === 0) {
     <div class="row">
@@ -53,10 +152,30 @@
       <div class="col-12">
         <div class="card">
           <div class="card-header">
-            <h5 class="card-title mb-0">All Bills</h5>
+            <div class="d-flex justify-content-between align-items-center">
+              <h5 class="card-title mb-0">All Bills</h5>
+              @if (isSearching) {
+                <div class="d-flex align-items-center">
+                  <div class="spinner-border spinner-border-sm text-primary me-2" role="status">
+                    <span class="visually-hidden">Searching...</span>
+                  </div>
+                  <small class="text-muted">Updating results...</small>
+                </div>
+              }
+            </div>
           </div>
-          <div class="card-body p-0">
-            <div class="table-responsive">
+          <div class="card-body p-0 position-relative">
+            @if (isSearching) {
+              <div class="position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center bg-white bg-opacity-75" style="z-index: 10;">
+                <div class="text-center">
+                  <div class="spinner-border text-primary mb-2" role="status">
+                    <span class="visually-hidden">Searching...</span>
+                  </div>
+                  <p class="text-muted mb-0">Searching bills...</p>
+                </div>
+              </div>
+            }
+            <div class="table-responsive" [class.opacity-50]="isSearching">
               <table class="table table-hover mb-0">
                 <thead class="table-dark">
                   <tr>
@@ -70,7 +189,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  @for (bill of bills; track trackByBillId($index, bill)) {
+                  @for (bill of filteredBills; track trackByBillId($index, bill)) {
                     <tr>
                       <td class="fw-bold">{{ bill.id }}</td>
                       <td>{{ bill.details }}</td>
@@ -107,15 +226,40 @@
                     </tr>
                   }
                 </tbody>
+                <tfoot class="table-light">
+                  <tr>
+                    <td colspan="3" class="fw-bold text-end">
+                      <i class="bi bi-calculator me-2"></i>
+                      Total:
+                    </td>
+                    <td class="fw-bold text-success fs-5">
+                      {{ formatCurrency(getTotalAmount()) }}
+                    </td>
+                    <td colspan="3" class="text-muted small">
+                      <i class="bi bi-list-check me-1"></i>
+                      {{ getTotalCount() }} bill(s) displayed
+                    </td>
+                  </tr>
+                </tfoot>
               </table>
             </div>
             
             <!-- Empty State -->
-            @if (bills.length === 0 && !isLoading) {
+            @if (filteredBills.length === 0 && !isLoading) {
               <div class="text-center py-5">
-                <i class="bi bi-receipt display-1 text-muted"></i>
-                <h4 class="text-muted mt-3">No Bills Found</h4>
-                <p class="text-muted">There are no bills to display at the moment.</p>
+                @if (searchText) {
+                  <i class="bi bi-search display-1 text-muted"></i>
+                  <h4 class="text-muted mt-3">No Bills Found</h4>
+                  <p class="text-muted">No bills match your search criteria.</p>
+                  <button class="btn btn-outline-primary" (click)="clearSearch()">
+                    <i class="bi bi-arrow-left me-2"></i>
+                    Clear Search
+                  </button>
+                } @else {
+                  <i class="bi bi-receipt display-1 text-muted"></i>
+                  <h4 class="text-muted mt-3">No Bills Found</h4>
+                  <p class="text-muted">There are no bills to display at the moment.</p>
+                }
               </div>
             }
           </div>

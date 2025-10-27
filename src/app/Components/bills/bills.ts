@@ -22,9 +22,10 @@ export interface Bill {
 export class Bills implements OnInit {
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
-  // url: string = "https://localhost:7111/api/";
-  url: string = "https://moneytracker.runasp.net/api/";
+  url: string = "https://localhost:7111/api/";
+  // url: string = "https://moneytracker.runasp.net/api/";
   bills: Bill[] = [];
+  filteredBills: Bill[] = [];
   selectedBill: Bill | null = null;
   newBill: Partial<Bill> = {
     details: '',
@@ -32,9 +33,13 @@ export class Bills implements OnInit {
     price: 0,
     userId: '1' // You might want to get this from authentication
   };
+  searchText: string = '';
+  startDate: string = '';
+  endDate: string = '';
   isEditModalOpen = false;
   isAddModalOpen = false;
   isLoading = false;
+  isSearching = false;
   errorMessage = '';
 
   ngOnInit(): void {
@@ -47,6 +52,7 @@ export class Bills implements OnInit {
       next: (resp) => {
         console.log(resp)
         this.bills = resp;
+        this.filteredBills = resp;
         this.isLoading = false;
         this.cdr.detectChanges();
       },
@@ -166,5 +172,137 @@ export class Bills implements OnInit {
 
   trackByBillId(index: number, bill: Bill): number {
     return bill.id;
+  }
+
+  searchBills(): void {
+    if (!this.searchText.trim()) {
+      this.filteredBills = this.bills;
+      return;
+    }
+
+    this.isSearching = true;
+    this.errorMessage = '';
+
+    // Call the backend search endpoint
+    this.http.post<Bill[]>(this.url + "Bill/srch", null, {
+      params: { txt: this.searchText.trim() }
+    }).subscribe({
+      next: (resp) => {
+        this.filteredBills = resp;
+        this.isSearching = false;
+        this.cdr.detectChanges();
+      },
+      error: (err) => {
+        console.error('Error searching bills:', err);
+        this.errorMessage = 'Failed to search bills';
+        this.isSearching = false;
+        // Fallback to client-side filtering
+        this.filterBillsLocally();
+      }
+    });
+  }
+
+  filterBillsLocally(): void {
+    if (!this.searchText.trim()) {
+      this.filteredBills = this.bills;
+      return;
+    }
+
+    const searchTerm = this.searchText.toLowerCase().trim();
+    this.filteredBills = this.bills.filter(bill => 
+      bill.details.toLowerCase().includes(searchTerm)
+    );
+  }
+
+  clearSearch(): void {
+    this.searchText = '';
+    this.applyFilters();
+    this.errorMessage = '';
+  }
+
+  onSearchInput(): void {
+    // Debounce search - search after user stops typing for 500ms
+    clearTimeout(this.searchTimeout);
+    this.searchTimeout = setTimeout(() => {
+      this.searchBills();
+    }, 500);
+  }
+
+  private searchTimeout: any;
+
+  filterByDate(): void {
+    if (!this.startDate && !this.endDate) {
+      this.applyFilters();
+      return;
+    }
+
+    const startDate = this.startDate ? new Date(this.startDate) : null;
+    const endDate = this.endDate ? new Date(this.endDate) : null;
+
+    this.filteredBills = this.bills.filter(bill => {
+      const billDate = new Date(bill.createdAt);
+      
+      if (startDate && endDate) {
+        return billDate >= startDate && billDate <= endDate;
+      } else if (startDate) {
+        return billDate >= startDate;
+      } else if (endDate) {
+        return billDate <= endDate;
+      }
+      return true;
+    });
+  }
+
+  applyFilters(): void {
+    let filtered = [...this.bills];
+
+    // Apply text search filter
+    if (this.searchText.trim()) {
+      const searchTerm = this.searchText.toLowerCase().trim();
+      filtered = filtered.filter(bill => 
+        bill.details.toLowerCase().includes(searchTerm)
+      );
+    }
+
+    // Apply date filter
+    if (this.startDate || this.endDate) {
+      const startDate = this.startDate ? new Date(this.startDate) : null;
+      const endDate = this.endDate ? new Date(this.endDate) : null;
+
+      filtered = filtered.filter(bill => {
+        const billDate = new Date(bill.createdAt);
+        
+        if (startDate && endDate) {
+          return billDate >= startDate && billDate <= endDate;
+        } else if (startDate) {
+          return billDate >= startDate;
+        } else if (endDate) {
+          return billDate <= endDate;
+        }
+        return true;
+      });
+    }
+
+    this.filteredBills = filtered;
+  }
+
+  clearDateFilter(): void {
+    this.startDate = '';
+    this.endDate = '';
+    this.applyFilters();
+  }
+
+  getTotalAmount(): number {
+    return this.filteredBills.reduce((total, bill) => {
+      return total + (bill.price * (bill.quantity || 1));
+    }, 0);
+  }
+
+  getTotalCount(): number {
+    return this.filteredBills.length;
+  }
+
+  onDateChange(): void {
+    this.applyFilters();
   }
 }
