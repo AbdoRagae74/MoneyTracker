@@ -22,8 +22,8 @@ export interface Bill {
 export class Bills implements OnInit {
   constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
 
-  url: string = "https://localhost:7111/api/";
-  // url: string = "https://moneytracker.runasp.net/api/";
+  // url: string = "https://localhost:7111/api/";
+  url: string = "https://moneytracker.runasp.net/api/";
   bills: Bill[] = [];
   filteredBills: Bill[] = [];
   selectedBill: Bill | null = null;
