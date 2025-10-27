@@ -1,0 +1,330 @@
+<div class="container-fluid mt-4">
+  <!-- Header -->
+  <div class="row mb-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center">
+        <h2 class="mb-0">
+          <i class="bi bi-receipt me-2"></i>
+          Bills Management
+        </h2>
+        <div class="btn-group" role="group">
+          <button class="btn btn-success" (click)="openAddModal()" [disabled]="isLoading">
+            <i class="bi bi-plus-circle me-2"></i>
+            Add New Bill
+          </button>
+          <button class="btn btn-primary" (click)="loadBills()" [disabled]="isLoading">
+            @if (isLoading) {
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+            }
+            Refresh
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  @if (errorMessage) {
+    <div class="row mb-3">
+      <div class="col-12">
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+          {{ errorMessage }}
+          <button type="button" class="btn-close" (click)="errorMessage = ''"></button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Loading Spinner -->
+  @if (isLoading && bills.length === 0) {
+    <div class="row">
+      <div class="col-12 text-center">
+        <div class="spinner-border text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-2">Loading bills...</p>
+      </div>
+    </div>
+  }
+
+  <!-- Bills Table -->
+  @if (!isLoading || bills.length > 0) {
+    <div class="row">
+      <div class="col-12">
+        <div class="card">
+          <div class="card-header">
+            <h5 class="card-title mb-0">All Bills</h5>
+          </div>
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-hover mb-0">
+                <thead class="table-dark">
+                  <tr>
+                    <th scope="col">ID</th>
+                    <th scope="col">Details</th>
+                    <th scope="col">Quantity</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Total</th>
+                    <th scope="col">Created Date</th>
+                    <th scope="col">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (bill of bills; track trackByBillId($index, bill)) {
+                    <tr>
+                      <td class="fw-bold">{{ bill.id }}</td>
+                      <td>{{ bill.details }}</td>
+                      <td>
+                        @if (bill.quantity) {
+                          <span class="badge bg-secondary">{{ bill.quantity }}</span>
+                        } @else {
+                          <span class="text-muted">-</span>
+                        }
+                      </td>
+                      <td>{{ formatCurrency(bill.price) }}</td>
+                      <td class="fw-bold text-success">
+                        {{ formatCurrency(bill.price * (bill.quantity || 1)) }}
+                      </td>
+                      <td>{{ formatDate(bill.createdAt) }}</td>
+                      <td>
+                        <div class="btn-group" role="group">
+                          <button 
+                            type="button" 
+                            class="btn btn-sm btn-outline-primary"
+                            (click)="openEditModal(bill)"
+                            [disabled]="isLoading">
+                            <i class="bi bi-pencil"></i> Edit
+                          </button>
+                          <button 
+                            type="button" 
+                            class="btn btn-sm btn-outline-danger"
+                            (click)="deleteBill(bill.id)"
+                            [disabled]="isLoading">
+                            <i class="bi bi-trash"></i> Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+            
+            <!-- Empty State -->
+            @if (bills.length === 0 && !isLoading) {
+              <div class="text-center py-5">
+                <i class="bi bi-receipt display-1 text-muted"></i>
+                <h4 class="text-muted mt-3">No Bills Found</h4>
+                <p class="text-muted">There are no bills to display at the moment.</p>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- Edit Modal -->
+  @if (isEditModalOpen) {
+    <div class="modal fade show" [style.display]="'block'" 
+         tabindex="-1" role="dialog" aria-labelledby="editBillModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="editBillModalLabel">
+              <i class="bi bi-pencil me-2"></i>
+              Edit Bill #{{ selectedBill?.id }}
+            </h5>
+            <button type="button" class="btn-close" (click)="closeEditModal()" aria-label="Close"></button>
+          </div>
+          
+          @if (selectedBill) {
+            <form (ngSubmit)="saveBill()">
+              <div class="modal-body">
+                <div class="row">
+                  <div class="col-md-8 mb-3">
+                    <label for="details" class="form-label">Details</label>
+                    <textarea 
+                      class="form-control" 
+                      id="details" 
+                      rows="3"
+                      [(ngModel)]="selectedBill.details" 
+                      name="details"
+                      required>
+                    </textarea>
+                  </div>
+                    
+                  <div class="col-md-4 mb-3">
+                    <label for="quantity" class="form-label">Quantity</label>
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      id="quantity"
+                      [(ngModel)]="selectedBill.quantity" 
+                      name="quantity"
+                      min="1">
+                  </div>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6 mb-3">
+                    <label for="price" class="form-label">Price</label>
+                    <div class="input-group">
+                      <span class="input-group-text">$</span>
+                      <input 
+                        type="number" 
+                        class="form-control" 
+                        id="price"
+                        [(ngModel)]="selectedBill.price" 
+                        name="price"
+                        step="0.01"
+                        min="0"
+                        required>
+                    </div>
+                  </div>
+                    
+                  <div class="col-md-6 mb-3">
+                    <label class="form-label">Total Amount</label>
+                    <div class="form-control-plaintext fw-bold text-success fs-5">
+                      {{ formatCurrency(selectedBill.price * (selectedBill.quantity || 1)) }}
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="row">
+                  <div class="col-md-6">
+                    <small class="text-muted">
+                      <strong>Created:</strong> {{ formatDate(selectedBill.createdAt) }}
+                    </small>
+                  </div>
+                  @if (selectedBill.updatedAt) {
+                    <div class="col-md-6">
+                      <small class="text-muted">
+                        <strong>Last Updated:</strong> {{ formatDate(selectedBill.updatedAt) }}
+                      </small>
+                    </div>
+                  }
+                </div>
+              </div>
+              
+              <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" (click)="closeEditModal()">
+                  Cancel
+                </button>
+                <button type="submit" class="btn btn-primary" [disabled]="isLoading">
+                  @if (isLoading) {
+                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                  }
+                  Save Changes
+                </button>
+              </div>
+            </form>
+          }
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop fade show"></div>
+  }
+
+  <!-- Add New Bill Modal -->
+  @if (isAddModalOpen) {
+    <div class="modal fade show" [style.display]="'block'" 
+         tabindex="-1" role="dialog" aria-labelledby="addBillModalLabel" aria-hidden="true">
+      <div class="modal-dialog modal-lg" role="document">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="addBillModalLabel">
+              <i class="bi bi-plus-circle me-2"></i>
+              Add New Bill
+            </h5>
+            <button type="button" class="btn-close" (click)="closeAddModal()" aria-label="Close"></button>
+          </div>
+          
+          <form (ngSubmit)="addNewBill()">
+            <div class="modal-body">
+              <div class="row">
+                <div class="col-md-8 mb-3">
+                  <label for="newDetails" class="form-label">Details <span class="text-danger">*</span></label>
+                  <textarea 
+                    class="form-control" 
+                    id="newDetails" 
+                    rows="3"
+                    [(ngModel)]="newBill.details" 
+                    name="newDetails"
+                    placeholder="Enter bill details..."
+                    required>
+                  </textarea>
+                </div>
+                  
+                <div class="col-md-4 mb-3">
+                  <label for="newQuantity" class="form-label">Quantity</label>
+                  <input 
+                    type="number" 
+                    class="form-control" 
+                    id="newQuantity"
+                    [(ngModel)]="newBill.quantity" 
+                    name="newQuantity"
+                    min="1"
+                    placeholder="1">
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6 mb-3">
+                  <label for="newPrice" class="form-label">Price <span class="text-danger">*</span></label>
+                  <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input 
+                      type="number" 
+                      class="form-control" 
+                      id="newPrice"
+                      [(ngModel)]="newBill.price" 
+                      name="newPrice"
+                      step="0.01"
+                      min="0"
+                      placeholder="0.00"
+                      required>
+                  </div>
+                </div>
+                  
+                <div class="col-md-6 mb-3">
+                  <label class="form-label">Total Amount</label>
+                  <div class="form-control-plaintext fw-bold text-success fs-5">
+                    {{ formatCurrency((newBill.price || 0) * (newBill.quantity || 1)) }}
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-12">
+                  <div class="alert alert-info">
+                    <i class="bi bi-info-circle me-2"></i>
+                    <strong>Note:</strong> The bill will be created with the current timestamp and linked to the default user.
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" (click)="closeAddModal()">
+                Cancel
+              </button>
+              <button type="submit" class="btn btn-success" [disabled]="isLoading || !newBill.details || !newBill.price">
+                @if (isLoading) {
+                  <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                }
+                <i class="bi bi-plus-circle me-2"></i>
+                Add Bill
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <!-- Modal Backdrop -->
+    <div class="modal-backdrop fade show"></div>
+  }
+</div>
