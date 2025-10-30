@@ -2,6 +2,8 @@ import { HttpClient } from '@angular/common/http';
 import { ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AuthService } from '../../Services/AuthService';
+import { Router } from '@angular/router';
 
 export interface Bill {
   id: number;
@@ -20,10 +22,11 @@ export interface Bill {
   styleUrl: './bills.css',
 })
 export class Bills implements OnInit {
-  constructor(private http: HttpClient, private cdr: ChangeDetectorRef) {}
+  constructor(private http: HttpClient, private cdr: ChangeDetectorRef,private auth:AuthService,private router:Router) {}
 
-  // url: string = "https://localhost:7111/api/";
-  url: string = "https://moneytracker.runasp.net/api/";
+  url: string = "https://localhost:7111/api/";
+  // url: string = "https://moneytracker.runasp.net/api/";
+
   bills: Bill[] = [];
   filteredBills: Bill[] = [];
   selectedBill: Bill | null = null;
@@ -31,7 +34,7 @@ export class Bills implements OnInit {
     details: '',
     quantity: 1,
     price: 0,
-    userId: '1' // You might want to get this from authentication
+    userId: "null" // You might want to get this from authentication
   };
   searchText: string = '';
   startDate: string = '';
@@ -41,8 +44,13 @@ export class Bills implements OnInit {
   isLoading = false;
   isSearching = false;
   errorMessage = '';
-
+  userId:string|null="";
   ngOnInit(): void {
+    if(!this.auth.getToken()){      
+      this.router.navigate(["/login"]);
+    }
+    
+      this.userId = localStorage.getItem("UserId")!;
     this.loadBills();
   }
 
@@ -118,17 +126,16 @@ export class Bills implements OnInit {
   }
 
   addNewBill(): void {
-    console.log(this.newBill)
 
-    if (!this.newBill.details || !this.newBill.price) {
+    if (!this.newBill.details || !this.newBill.price || !this.userId ) {
       this.errorMessage = 'Please fill in all required fields';
       return;
     }
     
+    this.newBill.userId = this.userId;
 
     this.isLoading = true;
-    console.log(this.newBill)
-    this.http.post(this.url + "Bill", this.newBill).subscribe({
+    this.http.post(this.url + "Bill/add", this.newBill).subscribe({
       next: () => {
         this.loadBills();
         this.closeAddModal();

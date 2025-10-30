@@ -2,13 +2,19 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners, provideZonelessC
 import { provideRouter } from '@angular/router';
 
 import { routes } from './app.routes';
-import { provideHttpClient } from '@angular/common/http';
+import { HTTP_INTERCEPTORS, provideHttpClient, withFetch, withInterceptorsFromDi } from '@angular/common/http';
+import { jwtInterceptor } from './Interceptor/jwt-interceptor-interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
     provideZonelessChangeDetection(),
     provideRouter(routes),
-    provideHttpClient()
+    provideHttpClient(withFetch(),withInterceptorsFromDi()),{
+      provide:HTTP_INTERCEPTORS,
+      useClass:jwtInterceptor,
+      multi:true
+    }
+    
   ]
 };

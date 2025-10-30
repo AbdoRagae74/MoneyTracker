@@ -1,0 +1,17 @@
+<div class="container p-5 mt-5 alert alert-light">
+  <label>Email address</label>
+  <input
+    type="Email"
+    class="form-control mb-3"
+    placeholder="Enter Email"
+    [(ngModel)]="email"
+  />
+  <label>Password</label>
+  <input
+    type="password"
+    class="form-control mb-3"
+    placeholder="Enter Password"
+    [(ngModel)]="password"
+  />
+  <button class="btn btn-success mt-3" (click)="login()">Login</button>
+</div>
