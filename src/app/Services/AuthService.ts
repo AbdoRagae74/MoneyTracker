@@ -9,7 +9,8 @@ export class AuthService {
 
   constructor(private http:HttpClient) {
   }
-  baseUrl:string="https://localhost:7111/api/auth/login";
+  // baseUrl:string="https://localhost:7111/api/auth/login";
+  baseUrl: string = "https://moneytracker.runasp.net/api/auth/login";
 
   getToken() {
     if (typeof window !== 'undefined' && localStorage) {
