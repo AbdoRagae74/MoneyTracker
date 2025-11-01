@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { ChangeDetectorRef, Component } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../Services/AuthService';
 import { Router } from '@angular/router';
@@ -11,19 +11,20 @@ import { Router } from '@angular/router';
 })
 export class Login {
   
-  constructor(private auth:AuthService,private router:Router) {
+  constructor(private auth:AuthService,private router:Router,private cdr:ChangeDetectorRef) {
   }
+  process:boolean = false;
   email:string="";
   password:string="";
   login(){
-
+    this.process = true;
     this.auth.login({email:this.email,password:this.password}).subscribe({
       next :(resp)=>{
-        // console.log(resp.token);
-        // console.log(resp.id);
+        this.process=false;
         localStorage.setItem("Token",resp.token);
         localStorage.setItem("UserId",resp.id);
         this.router.navigate(["/bills"]);
+        this.cdr.detectChanges();
       },
       error:(err)=>{
         console.log(err);
@@ -33,4 +34,5 @@ export class Login {
     });
     
   }
+
 }
