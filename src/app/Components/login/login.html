@@ -1,7 +1,10 @@
+@if(process) {
+<div class="loader-overlay">
+  <div class="loader"></div>
+</div>
+
+}
 <div class="container p-5 mt-5 alert alert-light">
-  @if(process) {
-  <h1>Login</h1>
-  }
   <form (submit)="login()">
     <label>Email address</label>
     <input

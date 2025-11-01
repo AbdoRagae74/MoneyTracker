@@ -1,6 +1,7 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable } from '@angular/core';
 import { IAuthResponse } from '../Interfaces/IAuthResponse';
+import { BehaviorSubject } from 'rxjs';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +12,7 @@ export class AuthService {
   }
   // baseUrl:string="https://localhost:7111/api/auth/login";
   baseUrl: string = "https://moneytracker.runasp.net/api/auth/login";
-
+  private loggedIn = new BehaviorSubject<boolean>(!!localStorage.getItem('Token'));
   getToken() {
     if (typeof window !== 'undefined' && localStorage) {
       return localStorage.getItem('Token');
@@ -21,6 +22,17 @@ export class AuthService {
 
   login(loginData:any){
     return this.http.post<IAuthResponse>(this.baseUrl,loginData);  
+  }
+   subIsLoggedIn() {
+    return this.loggedIn.asObservable();
+  }
+  isLoggedIn(){
+    return this.loggedIn.value;
+  }
+  setLoggedInStatus(status:boolean){
+    console.log("Status",status )
+    this.loggedIn.next(status);
+    console.log("AuthService" , this.loggedIn.value)
   }
 
 

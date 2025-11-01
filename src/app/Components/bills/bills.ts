@@ -46,11 +46,7 @@ export class Bills implements OnInit {
   errorMessage = '';
   userId:string|null="";
   ngOnInit(): void {
-    if(!this.auth.getToken()){      
-      this.router.navigate(["/login"]);
-    }
-    
-      this.userId = localStorage.getItem("UserId")!;
+    this.userId = localStorage.getItem("UserId")!;
     this.loadBills();
   }
 

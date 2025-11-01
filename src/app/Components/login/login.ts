@@ -24,6 +24,7 @@ export class Login {
         localStorage.setItem("Token",resp.token);
         localStorage.setItem("UserId",resp.id);
         this.router.navigate(["/bills"]);
+        this.auth.setLoggedInStatus(true);
         this.cdr.detectChanges();
       },
       error:(err)=>{
